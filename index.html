@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Hue Hunt - Telegram Mini App</title>
+  
+  <!-- Telegram WebApp Script -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Ambient background glow reacting to current puzzle color -->
+  <div id="ambient-backdrop" class="ambient-backdrop"></div>
+
+  <!-- Confetti canvas overlay -->
+  <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
+
+  <div class="app-container">
+    <!-- Top Navigation / Header -->
+    <header class="app-header">
+      <div class="brand-group">
+        <div class="logo-badge">
+          <span class="logo-dot"></span>
+          <span class="logo-text">HUE HUNT</span>
+        </div>
+        <span class="bot-tag" id="bot-tag">@Colorfulgame_bot</span>
+      </div>
+
+      <div class="header-controls">
+        <button id="btn-sound-toggle" class="icon-btn" title="Toggle Sound" aria-label="Toggle Sound">
+          <span id="sound-icon">🔊</span>
+        </button>
+        <button id="btn-settings-toggle" class="icon-btn" title="Settings" aria-label="Settings">
+          <span>⚙️</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Game View -->
+    <main id="game-view" class="view-panel active">
+      <!-- Mode Badge & Prompt -->
+      <div class="mode-ribbon">
+        <div id="mode-badge" class="mode-badge">⚡ ENDLESS MODE</div>
+        <div class="instruction-text">Find the different shade</div>
+      </div>
+
+      <!-- HUD: Best, Current Score, Time Left -->
+      <section class="hud-dashboard">
+        <div class="hud-card best-card">
+          <span class="hud-label">BEST</span>
+          <span class="hud-value" id="hud-best-score">0</span>
+        </div>
+
+        <div class="hud-card current-card">
+          <span class="hud-label">CURRENT SCORE</span>
+          <span class="hud-value large-value" id="hud-current-score">0</span>
+        </div>
+
+        <div class="hud-card time-card">
+          <span class="hud-label">TIME LEFT</span>
+          <span class="hud-value" id="hud-time-left">15s</span>
+          <div class="time-progress-track">
+            <div id="time-progress-bar" class="time-progress-fill"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Status Sub-bar: Lives & Combo Multiplier -->
+      <div class="status-subbar">
+        <div class="lives-container" id="lives-container" title="Lives remaining">
+          <span class="heart active">❤️</span>
+          <span class="heart active">❤️</span>
+          <span class="heart active">❤️</span>
+        </div>
+
+        <div id="combo-pill" class="combo-pill hidden">
+          <span class="combo-fire">🔥</span>
+          <span id="combo-text">COMBO x1.5</span>
+        </div>
+      </div>
+
+      <!-- 3x3 Tile Grid -->
+      <div class="grid-wrapper">
+        <div id="tile-grid" class="tile-grid">
+          <!-- 9 dynamic buttons (3x3) -->
+          <button class="color-tile" data-index="0" id="tile-0"></button>
+          <button class="color-tile" data-index="1" id="tile-1"></button>
+          <button class="color-tile" data-index="2" id="tile-2"></button>
+          <button class="color-tile" data-index="3" id="tile-3"></button>
+          <button class="color-tile" data-index="4" id="tile-4"></button>
+          <button class="color-tile" data-index="5" id="tile-5"></button>
+          <button class="color-tile" data-index="6" id="tile-6"></button>
+          <button class="color-tile" data-index="7" id="tile-7"></button>
+          <button class="color-tile" data-index="8" id="tile-8"></button>
+        </div>
+
+        <!-- Floating scores element container -->
+        <div id="floating-scores" class="floating-scores-layer"></div>
+      </div>
+
+      <!-- Quick Action Controls -->
+      <div class="game-actions">
+        <button id="btn-reset-demo" class="btn btn-secondary">
+          <span>🔄</span> Reset demo
+        </button>
+        <button id="btn-challenge-friend" class="btn btn-accent">
+          <span>⚔️</span> Challenge Friend
+        </button>
+      </div>
+    </main>
+
+    <!-- Leaderboard View -->
+    <section id="leaderboard-view" class="view-panel">
+      <div class="leaderboard-header">
+        <h2>🏆 Leaderboard</h2>
+        <p class="section-subtitle">Compete with friends & Telegram masters</p>
+      </div>
+
+      <div class="segmented-tabs">
+        <button id="tab-endless" class="tab-btn active">⚡ Endless</button>
+        <button id="tab-daily" class="tab-btn">📅 Daily Challenge</button>
+      </div>
+
+      <div id="leaderboard-list" class="leaderboard-list">
+        <!-- Rendered via JS -->
+      </div>
+
+      <div id="my-rank-card" class="my-rank-card">
+        <!-- Current user's pinned rank -->
+      </div>
+
+      <div class="leaderboard-footer">
+        <button id="btn-share-leaderboard" class="btn btn-primary full-width">
+          <span>📤</span> Share & Challenge Friends
+        </button>
+      </div>
+    </section>
+
+    <!-- Daily Challenge Intro View -->
+    <section id="daily-view" class="view-panel">
+      <div class="daily-hero-card">
+        <div class="daily-calendar-badge">📅 TODAY'S RUN</div>
+        <h2 id="daily-date-label">October 9, 2026</h2>
+        <p class="daily-description">
+          Every player worldwide receives the exact same color puzzle sequence today.
+          Test your optical reflexes under equal conditions!
+        </p>
+
+        <div class="daily-stats-row">
+          <div class="stat-pill">
+            <span class="stat-title">Daily Best</span>
+            <span class="stat-num" id="daily-best-stat">0</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-title">Today's Leader</span>
+            <span class="stat-num" id="daily-leader-stat">34</span>
+          </div>
+        </div>
+
+        <button id="btn-start-daily" class="btn btn-primary btn-large">
+          <span>⚡</span> Launch Daily Challenge
+        </button>
+      </div>
+    </section>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>⚙️ Game Settings</h3>
+          <button id="btn-close-settings" class="modal-close">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="setting-item">
+            <label for="input-player-name">Player Name</label>
+            <input type="text" id="input-player-name" class="text-input" maxlength="20" placeholder="Enter your name">
+          </div>
+
+          <div class="setting-item-toggle">
+            <div>
+              <div class="setting-label">Sound Effects</div>
+              <div class="setting-subtext">Arcade chimes, combos & warnings</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-sound" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item-toggle">
+            <div>
+              <div class="setting-label">Haptic Feedback</div>
+              <div class="setting-subtext">Tactile vibrations inside Telegram</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-haptics" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item-toggle">
+            <div>
+              <div class="setting-label">Accessibility: Pattern Assist</div>
+              <div class="setting-subtext">Subtle symbol on odd tile for color vision comfort</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-assist">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="about-card">
+            <h4>Hue Hunt Telegram Mini App</h4>
+            <p>Official bot: <a href="https://t.me/Colorfulgame_bot" target="_blank">@Colorfulgame_bot</a></p>
+            <p class="muted-note">Spot the odd shade, maintain combo streaks, and climb the leaderboard.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameover-modal" class="modal-overlay hidden">
+      <div class="modal-card gameover-card">
+        <div id="gameover-badge" class="gameover-badge">GAME OVER</div>
+        
+        <div class="final-score-container">
+          <div class="final-score-label">FINAL SCORE</div>
+          <div id="final-score-val" class="final-score-val">18</div>
+        </div>
+
+        <div id="new-record-banner" class="new-record-banner hidden">
+          <span>🏆</span> NEW PERSONAL BEST!
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span class="stat-label">BEST SCORE</span>
+            <span class="stat-data" id="gameover-best-val">24</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">MAX COMBO</span>
+            <span class="stat-data" id="gameover-combo-val">12x</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">ROUNDS</span>
+            <span class="stat-data" id="gameover-rounds-val">19</span>
+          </div>
+        </div>
+
+        <div class="gameover-buttons">
+          <button id="btn-play-again" class="btn btn-primary btn-large">
+            <span>🎮</span> Play Again
+          </button>
+          <button id="btn-share-score" class="btn btn-telegram btn-large">
+            <span>📤</span> Share Score & Challenge
+          </button>
+          <button id="btn-view-ranks" class="btn btn-secondary">
+            <span>🏆</span> View Leaderboard
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="game-view" id="nav-btn-game">
+        <span class="nav-icon">🎮</span>
+        <span class="nav-label">Game</span>
+      </button>
+      <button class="nav-item" data-view="daily-view" id="nav-btn-daily">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Daily</span>
+      </button>
+      <button class="nav-item" data-view="leaderboard-view" id="nav-btn-leaderboard">
+        <span class="nav-icon">🏆</span>
+        <span class="nav-label">Ranks</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Main ES Module Script -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
