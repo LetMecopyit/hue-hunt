@@ -60,16 +60,19 @@ npm install
 Copy `.env.example` to `.env`:
 ```env
 BOT_TOKEN=your_botfather_token_here
-WEBAPP_URL=https://your-public-url.com
+WEBAPP_URL=https://letmecopyit.github.io/hue-hunt/
 PORT=3000
 ```
 
-### 3. Start the Server & Game
+### 3. Live Deployment
+The game is deployed and live on **GitHub Pages**:  
+👉 **[https://letmecopyit.github.io/hue-hunt/](https://letmecopyit.github.io/hue-hunt/)**
+
+### 4. Local Development Server
 ```bash
 npm start
 ```
-The game will be available immediately at:  
-👉 **`http://localhost:3000`**
+The game will be available locally at `http://localhost:3000`.
 
 ---
 
