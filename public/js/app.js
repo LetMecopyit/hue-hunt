@@ -49,9 +49,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const gameoverBestVal = document.getElementById('gameover-best-val');
   const gameoverComboVal = document.getElementById('gameover-combo-val');
   const gameoverRoundsVal = document.getElementById('gameover-rounds-val');
+  const btnWatchAdRevive = document.getElementById('btn-watch-ad-revive');
   const btnPlayAgain = document.getElementById('btn-play-again');
   const btnShareScore = document.getElementById('btn-share-score');
   const btnViewRanks = document.getElementById('btn-view-ranks');
+
+  // Monetag Ad SDK Helper (Zone 11989416)
+  function triggerMonetagAd(onCompleted) {
+    if (typeof window.show_11989416 === 'function') {
+      try {
+        window.show_11989416()
+          .then(() => {
+            if (onCompleted) onCompleted(true);
+          })
+          .catch((err) => {
+            console.warn('Monetag ad notice/closed:', err);
+            if (onCompleted) onCompleted(true);
+          });
+        return;
+      } catch (e) {
+        console.warn('Monetag call error:', e);
+      }
+    } else {
+      console.log('Monetag show_11989416 not loaded yet or blocked.');
+    }
+    if (onCompleted) onCompleted(false);
+  }
 
   // Navigation & Views
   const navItems = document.querySelectorAll('.nav-item');
@@ -208,6 +231,12 @@ document.addEventListener('DOMContentLoaded', () => {
       newRecordBanner.classList.add('hidden');
     }
 
+    if (btnWatchAdRevive) {
+      btnWatchAdRevive.classList.remove('hidden');
+      btnWatchAdRevive.disabled = false;
+      btnWatchAdRevive.innerHTML = '<span>📺</span> Revive &amp; Continue (+1 Life)';
+    }
+
     gameoverModal.classList.remove('hidden');
   }
 
@@ -334,10 +363,36 @@ document.addEventListener('DOMContentLoaded', () => {
     game.start('daily');
   });
 
-  // Game Over Modal buttons
+  // Game Over Modal buttons & Monetag Ads
+  let gamesPlayedSession = 0;
+
+  if (btnWatchAdRevive) {
+    btnWatchAdRevive.addEventListener('click', () => {
+      telegramBridge.hapticImpact('medium');
+      btnWatchAdRevive.disabled = true;
+      btnWatchAdRevive.innerHTML = '<span>⏳</span> Loading Ad...';
+
+      triggerMonetagAd(() => {
+        btnWatchAdRevive.classList.add('hidden');
+        gameoverModal.classList.add('hidden');
+        game.revive();
+        telegramBridge.hapticNotification('success');
+        confetti.burst(window.innerWidth / 2, window.innerHeight * 0.45, 35);
+      });
+    });
+  }
+
   btnPlayAgain.addEventListener('click', () => {
     gameoverModal.classList.add('hidden');
-    game.start(lastPlayedMode);
+    gamesPlayedSession += 1;
+    // Show interstitial Monetag ad every 3 games
+    if (gamesPlayedSession % 3 === 0) {
+      triggerMonetagAd(() => {
+        game.start(lastPlayedMode);
+      });
+    } else {
+      game.start(lastPlayedMode);
+    }
   });
 
   btnShareScore.addEventListener('click', () => {

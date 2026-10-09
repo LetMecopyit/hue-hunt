@@ -218,6 +218,15 @@ export class HueHuntGame {
     this.emitState();
   }
 
+  revive() {
+    this.isPlaying = true;
+    this.isPaused = false;
+    this.lives = Math.max(1, this.lives);
+    this.timeLeft = Math.max(6.0, this.timeLeft + 6.0);
+    this.startTimer();
+    this.emitState();
+  }
+
   emitState() {
     if (this.onStateChange) {
       this.onStateChange({
