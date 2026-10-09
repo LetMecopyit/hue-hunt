@@ -1,0 +1,135 @@
+{
+  "endless": [
+    {
+      "userId": "101",
+      "name": "Pavel Durov",
+      "username": "durov",
+      "score": 48,
+      "timestamp": 1728460000000
+    },
+    {
+      "userId": "102",
+      "name": "Elena R.",
+      "username": "elena_chroma",
+      "score": 42,
+      "timestamp": 1728461000000
+    },
+    {
+      "userId": "103",
+      "name": "CyberAlex",
+      "username": "alex99",
+      "score": 38,
+      "timestamp": 1728462000000
+    },
+    {
+      "userId": "104",
+      "name": "ColorWiz",
+      "username": "wiz_color",
+      "score": 35,
+      "timestamp": 1728463000000
+    },
+    {
+      "userId": "105",
+      "name": "Mia Sun",
+      "username": "mia_art",
+      "score": 31,
+      "timestamp": 1728464000000
+    },
+    {
+      "userId": "106",
+      "name": "NeonSam",
+      "username": "neon_sam",
+      "score": 28,
+      "timestamp": 1728465000000
+    },
+    {
+      "userId": "107",
+      "name": "Luna_V",
+      "username": "luna_v",
+      "score": 26,
+      "timestamp": 1728466000000
+    },
+    {
+      "userId": "test_user_1",
+      "name": "Antigravity Player",
+      "username": "anti_grav",
+      "score": 25,
+      "maxCombo": 8,
+      "timestamp": 1791533614186
+    },
+    {
+      "userId": "108",
+      "name": "PixelDan",
+      "username": "pixeldan",
+      "score": 22,
+      "timestamp": 1728467000000
+    },
+    {
+      "userId": "109",
+      "name": "Tanya K.",
+      "username": "tanya_k",
+      "score": 19,
+      "timestamp": 1728468000000
+    },
+    {
+      "userId": "110",
+      "name": "ZeroCool",
+      "username": "zerocool",
+      "score": 17,
+      "timestamp": 1728469000000
+    },
+    {
+      "userId": "guest_9412",
+      "name": "Player #9412",
+      "username": "",
+      "score": 1,
+      "maxCombo": 1,
+      "timestamp": 1791533578170
+    }
+  ],
+  "daily": [
+    {
+      "userId": "102",
+      "name": "Elena R.",
+      "username": "elena_chroma",
+      "score": 34,
+      "timestamp": 1728461000000
+    },
+    {
+      "userId": "guest_9412",
+      "name": "Player #9412",
+      "username": "",
+      "score": 33,
+      "maxCombo": 17,
+      "timestamp": 1791533676395
+    },
+    {
+      "userId": "101",
+      "name": "Pavel Durov",
+      "username": "durov",
+      "score": 32,
+      "timestamp": 1728460000000
+    },
+    {
+      "userId": "104",
+      "name": "ColorWiz",
+      "username": "wiz_color",
+      "score": 29,
+      "timestamp": 1728463000000
+    },
+    {
+      "userId": "103",
+      "name": "CyberAlex",
+      "username": "alex99",
+      "score": 27,
+      "timestamp": 1728462000000
+    },
+    {
+      "userId": "105",
+      "name": "Mia Sun",
+      "username": "mia_art",
+      "score": 25,
+      "timestamp": 1728464000000
+    }
+  ]
+}
