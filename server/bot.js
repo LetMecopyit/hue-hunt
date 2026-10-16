@@ -21,12 +21,25 @@ if (!BOT_TOKEN) {
   console.warn('   4. Run: npm run bot\n');
 }
 
+const FAKE_USER_IDS = new Set(['101', '102', '103', '104', '105', '106', '107', '108', '109', '110']);
+
 function getTopScores(mode = 'endless', limit = 5) {
   try {
     if (fs.existsSync(DATA_FILE)) {
       const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-      const list = data[mode] || [];
-      return list.sort((a, b) => b.score - a.score).slice(0, limit);
+      let list = [];
+      if (mode === 'daily') {
+        const today = new Date().toISOString().slice(0, 10);
+        if (data.daily && typeof data.daily === 'object') {
+          list = data.daily[today] || [];
+        }
+      } else {
+        list = data.endless || [];
+      }
+      return list
+        .filter(item => !FAKE_USER_IDS.has(String(item.userId)))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
     }
   } catch (e) {
     // ignore
@@ -59,18 +72,21 @@ function createBot() {
           Markup.button.webApp('🎮 Play Hue Hunt', WEBAPP_URL)
         ],
         [
-          Markup.button.callback('🏆 Leaderboard', 'view_leaderboard'),
+          Markup.button.callback('⚡ Endless Ranks', 'view_lb_endless'),
+          Markup.button.callback('📅 Daily Ranks', 'view_lb_daily')
+        ],
+        [
           Markup.button.switchToChat('⚔️ Challenge Friend', 'Can you beat my score in Hue Hunt? 🎨🔥')
         ]
       ])
     );
   });
 
-  // Action: view_leaderboard
-  bot.action('view_leaderboard', async (ctx) => {
+  // Action: view_lb_endless
+  bot.action('view_lb_endless', async (ctx) => {
     await ctx.answerCbQuery();
     const scores = getTopScores('endless', 5);
-    let msg = `🏆 <b>Hue Hunt — Top Masters</b>\n\n`;
+    let msg = `🏆 <b>Hue Hunt — Endless High Scores</b>\n\n`;
 
     if (scores.length === 0) {
       msg += `No scores recorded yet. Be the first to set a record!\n`;
@@ -88,7 +104,39 @@ function createBot() {
     return ctx.replyWithHTML(
       msg,
       Markup.inlineKeyboard([
-        [Markup.button.webApp('🎮 Play Now', WEBAPP_URL)]
+        [
+          Markup.button.webApp('🎮 Play Now', WEBAPP_URL),
+          Markup.button.callback('📅 Daily Ranks', 'view_lb_daily')
+        ]
+      ])
+    );
+  });
+
+  // Action: view_lb_daily
+  bot.action('view_lb_daily', async (ctx) => {
+    await ctx.answerCbQuery();
+    const today = new Date().toISOString().slice(0, 10);
+    const scores = getTopScores('daily', 5);
+    let msg = `📅 <b>Hue Hunt — Today's Daily Run (${today})</b>\n\n`;
+
+    if (scores.length === 0) {
+      msg += `No daily records for today yet. Launch the game and be #1!\n`;
+    } else {
+      const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+      scores.forEach((s, i) => {
+        const medal = medals[i] || '•';
+        const name = s.name || s.username || 'Player';
+        msg += `${medal} <b>${name}</b>: ${s.score} pts\n`;
+      });
+    }
+
+    return ctx.replyWithHTML(
+      msg,
+      Markup.inlineKeyboard([
+        [
+          Markup.button.webApp('⚡ Play Daily Run', WEBAPP_URL),
+          Markup.button.callback('⚡ Endless Ranks', 'view_lb_endless')
+        ]
       ])
     );
   });
@@ -112,7 +160,10 @@ function createBot() {
     return ctx.replyWithHTML(
       msg,
       Markup.inlineKeyboard([
-        [Markup.button.webApp('🎮 Launch Mini App', WEBAPP_URL)]
+        [
+          Markup.button.webApp('🎮 Launch Mini App', WEBAPP_URL),
+          Markup.button.callback('📅 Daily Ranks', 'view_lb_daily')
+        ]
       ])
     );
   });

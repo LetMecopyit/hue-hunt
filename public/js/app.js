@@ -82,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnStartDaily = document.getElementById('btn-start-daily');
   const dailyDateLabel = document.getElementById('daily-date-label');
   const dailyBestStat = document.getElementById('daily-best-stat');
+  const dailyLeaderStat = document.getElementById('daily-leader-stat');
 
   // Leaderboard Elements
   const tabEndless = document.getElementById('tab-endless');
@@ -98,6 +99,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentActiveTab = 'endless';
   let lastPlayedMode = 'endless';
+
+  // Quick Toast Helper
+  function showToast(message) {
+    let toast = document.getElementById('game-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'game-toast';
+      toast.style.position = 'fixed';
+      toast.style.top = '16px';
+      toast.style.left = '50%';
+      toast.style.transform = 'translateX(-50%)';
+      toast.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+      toast.style.color = '#ffffff';
+      toast.style.padding = '10px 18px';
+      toast.style.borderRadius = '999px';
+      toast.style.fontSize = '0.85rem';
+      toast.style.fontWeight = '700';
+      toast.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.4)';
+      toast.style.zIndex = '9999';
+      toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      toast.style.pointerEvents = 'none';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-50%) translateY(-10px)';
+    }, 2400);
+  }
 
   // 3. Instantiate Game Controller
   const game = new HueHuntGame({
@@ -131,15 +163,15 @@ document.addEventListener('DOMContentLoaded', () => {
       modeBadge.style.borderColor = 'rgba(56, 189, 248, 0.3)';
     }
 
-    // Render Hearts / Lives
-    const hearts = livesContainer.querySelectorAll('.heart');
-    hearts.forEach((heart, idx) => {
-      if (idx < state.lives) {
-        heart.classList.remove('lost');
-      } else {
-        heart.classList.add('lost');
-      }
-    });
+    // Render Hearts / Lives dynamically based on current maxLives (supports 3 or 4)
+    livesContainer.innerHTML = '';
+    const maxHearts = state.maxLives || 3;
+    for (let i = 0; i < maxHearts; i++) {
+      const heart = document.createElement('span');
+      heart.className = `heart ${i < state.lives ? 'active' : 'lost'}`;
+      heart.textContent = '❤️';
+      livesContainer.appendChild(heart);
+    }
 
     // Combo indicator
     if (state.combo >= 5) {
@@ -232,9 +264,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (btnWatchAdRevive) {
-      btnWatchAdRevive.classList.remove('hidden');
-      btnWatchAdRevive.disabled = false;
-      btnWatchAdRevive.innerHTML = '<span>📺</span> Revive &amp; Continue (+1 Life)';
+      if (summary.hasUsedReward) {
+        // Fair rule: only 1 ad revive reward permitted per run to prevent leaderboard exploitation!
+        btnWatchAdRevive.classList.add('hidden');
+      } else {
+        btnWatchAdRevive.classList.remove('hidden');
+        btnWatchAdRevive.disabled = false;
+        btnWatchAdRevive.innerHTML = '<span>📺</span> Second Chance (+4 Lives &amp; +3s Extra)';
+      }
     }
 
     gameoverModal.classList.remove('hidden');
@@ -263,11 +300,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function updateDailyViewData() {
+  async function updateDailyViewData() {
     const today = new Date();
     const options = { month: 'long', day: 'numeric', year: 'numeric' };
     dailyDateLabel.textContent = today.toLocaleDateString('en-US', options);
     dailyBestStat.textContent = leaderboardManager.getBestScore('daily');
+
+    // Fetch real daily leaderboard to show today's genuine leader score
+    const scores = await leaderboardManager.getLeaderboard('daily');
+    const leaderScore = scores && scores.length > 0 ? scores[0].score : 0;
+    if (dailyLeaderStat) {
+      dailyLeaderStat.textContent = leaderScore;
+    }
   }
 
   // 8. Leaderboard View Rendering
@@ -276,13 +320,28 @@ document.addEventListener('DOMContentLoaded', () => {
     tabEndless.classList.toggle('active', mode === 'endless');
     tabDaily.classList.toggle('active', mode === 'daily');
 
-    leaderboardList.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted)">Loading ranks...</div>`;
+    leaderboardList.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-muted)">Loading real scores...</div>`;
 
     const scores = await leaderboardManager.getLeaderboard(mode);
     leaderboardList.innerHTML = '';
 
     if (!scores || scores.length === 0) {
-      leaderboardList.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted)">No scores yet. Be the first!</div>`;
+      if (mode === 'daily') {
+        leaderboardList.innerHTML = `
+          <div style="text-align:center; padding:32px 16px; color:var(--text-muted)">
+            <div style="font-size:2.2rem; margin-bottom:8px;">📅</div>
+            <div style="font-weight:700; color:var(--text-primary); margin-bottom:4px;">No records for today's daily puzzle yet</div>
+            <div style="font-size:0.85rem;">Be the very first player today to claim #1!</div>
+          </div>`;
+      } else {
+        leaderboardList.innerHTML = `
+          <div style="text-align:center; padding:32px 16px; color:var(--text-muted)">
+            <div style="font-size:2.2rem; margin-bottom:8px;">🏆</div>
+            <div style="font-weight:700; color:var(--text-primary); margin-bottom:4px;">No endless records recorded yet</div>
+            <div style="font-size:0.85rem;">Play a game to claim your spot on the podium!</div>
+          </div>`;
+      }
+      myRankCard.innerHTML = '';
       return;
     }
 
@@ -308,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
       leaderboardList.appendChild(row);
     });
 
-    // Pinned user rank card if not in top 10
+    // Pinned user rank card
     const myItem = scores.find(s => s.isCurrentUser);
     if (myItem) {
       myRankCard.innerHTML = `
@@ -324,7 +383,23 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     } else {
-      myRankCard.innerHTML = '';
+      const myLocalBest = leaderboardManager.getBestScore(mode);
+      if (myLocalBest > 0) {
+        myRankCard.innerHTML = `
+          <div class="leaderboard-item current-user" style="border-width: 2px;">
+            <div class="rank-col">
+              <span class="rank-badge">•</span>
+              <div class="player-info">
+                <span class="player-name">${escapeHTML(telegramBridge.user.displayName)} (Your Best)</span>
+                <span class="player-username">Mode: ${mode === 'daily' ? 'Daily' : 'Endless'}</span>
+              </div>
+            </div>
+            <div class="score-col">${myLocalBest}</div>
+          </div>
+        `;
+      } else {
+        myRankCard.innerHTML = '';
+      }
     }
   }
 
@@ -375,9 +450,11 @@ document.addEventListener('DOMContentLoaded', () => {
       triggerMonetagAd(() => {
         btnWatchAdRevive.classList.add('hidden');
         gameoverModal.classList.add('hidden');
-        game.revive();
+        // Fair reward: gives 4 lives and +3 seconds extra next turn
+        game.reviveWithReward();
         telegramBridge.hapticNotification('success');
         confetti.burst(window.innerWidth / 2, window.innerHeight * 0.45, 35);
+        showToast('✨ Second Chance: +4 Lives & +3s Extra!');
       });
     });
   }
@@ -431,6 +508,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   inputPlayerName.addEventListener('change', () => {
     telegramBridge.setDisplayName(inputPlayerName.value);
+    showToast(`Name set to ${inputPlayerName.value}`);
+    // Update existing score records on server with new name
+    const endlessBest = leaderboardManager.getBestScore('endless');
+    if (endlessBest > 0) {
+      leaderboardManager.submitScore(endlessBest, 'endless');
+    }
+    const dailyBest = leaderboardManager.getBestScore('daily');
+    if (dailyBest > 0) {
+      leaderboardManager.submitScore(dailyBest, 'daily');
+    }
   });
 
   toggleSound.addEventListener('change', () => {
@@ -445,7 +532,12 @@ document.addEventListener('DOMContentLoaded', () => {
     game.emitState();
   });
 
-  // 11. Initial Start
+  // 11. Initial Start & Real User Record Sync
   soundIcon.textContent = soundEngine.isMuted() ? '🔇' : '🔊';
+  leaderboardManager.syncUserStats().then(() => {
+    const best = leaderboardManager.getBestScore('endless');
+    hudBestScore.textContent = best;
+    game.bestScore = best;
+  });
   game.start('endless');
 });

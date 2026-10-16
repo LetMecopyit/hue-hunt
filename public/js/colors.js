@@ -24,19 +24,15 @@ function hashString(str) {
 
 export class ColorEngine {
   constructor() {
-    this.dailyRNG = null;
+    this.dailySeedStr = new Date().toISOString().slice(0, 10);
   }
 
   setDailySeed(dateStr) {
-    const seed = hashString(dateStr || new Date().toISOString().slice(0, 10));
-    this.dailyRNG = createPRNG(seed);
+    this.dailySeedStr = dateStr || new Date().toISOString().slice(0, 10);
   }
 
-  getRandom(isDaily = false) {
-    if (isDaily && this.dailyRNG) {
-      return this.dailyRNG();
-    }
-    return Math.random();
+  getDailySeed() {
+    return this.dailySeedStr;
   }
 
   /**
@@ -55,24 +51,33 @@ export class ColorEngine {
   /**
    * Generate a round puzzle:
    * 8 tiles share the base color, 1 tile has a slightly altered shade.
+   * In daily mode, each round is deterministically derived from (dateStr, round).
    */
   generateRound(round = 1, isDaily = false, gridSize = 9) {
     const delta = this.calculateDelta(round);
+
+    let rng;
+    if (isDaily) {
+      const seed = hashString(`${this.dailySeedStr || 'daily'}_round_${round}`);
+      rng = createPRNG(seed);
+    } else {
+      rng = Math.random;
+    }
 
     // Pick vibrant, balanced HSL base color
     // Hue: 0 - 360
     // Saturation: 50% - 85%
     // Lightness: 35% - 65% (safe range so +/- delta won't clip into pure white/black)
-    const h = Math.floor(this.getRandom(isDaily) * 360);
-    const s = Math.floor(52 + this.getRandom(isDaily) * 33);
-    const l = Math.floor(36 + this.getRandom(isDaily) * 28);
+    const h = Math.floor(rng() * 360);
+    const s = Math.floor(52 + rng() * 33);
+    const l = Math.floor(36 + rng() * 28);
 
     // Pick odd tile index (0 to gridSize - 1)
-    const oddIndex = Math.floor(this.getRandom(isDaily) * gridSize);
+    const oddIndex = Math.floor(rng() * gridSize);
 
-    // Apply delta to Lightness (or subtle Hue variation for high rounds)
+    // Apply delta to Lightness
     // Alternate direction (+ or -) pseudo-randomly
-    const direction = this.getRandom(isDaily) > 0.5 ? 1 : -1;
+    const direction = rng() > 0.5 ? 1 : -1;
     let oddL = l + direction * delta;
 
     // Boundary check so lightness never clips

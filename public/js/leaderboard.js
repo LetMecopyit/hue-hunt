@@ -1,94 +1,120 @@
 /**
  * Hue Hunt - Leaderboard Manager
- * Synchronizes scores with backend REST API and handles local caching.
+ * Synchronizes real scores with backend REST API and handles local caching.
+ * No fake users or mock data.
  */
 
 export class LeaderboardManager {
   constructor(telegramBridge) {
     this.tgBridge = telegramBridge;
     this.apiBase = '/api';
-    this.mockLeaderboard = this.generateMockLeaderboard();
+    this.todayDate = new Date().toISOString().slice(0, 10);
+    this.cachedDailyLeader = 0;
   }
 
-  // Pre-seed realistic Telegram player scores for immediate excitement
-  generateMockLeaderboard() {
-    return {
-      endless: [
-        { rank: 1, name: 'Pavel Durov', username: 'durov', score: 48, isCurrentUser: false },
-        { rank: 2, name: 'Elena R.', username: 'elena_chroma', score: 42, isCurrentUser: false },
-        { rank: 3, name: 'CyberAlex', username: 'alex99', score: 38, isCurrentUser: false },
-        { rank: 4, name: 'ColorWiz', username: 'wiz_color', score: 35, isCurrentUser: false },
-        { rank: 5, name: 'Mia Sun', username: 'mia_art', score: 31, isCurrentUser: false },
-        { rank: 6, name: 'NeonSam', username: 'neon_sam', score: 28, isCurrentUser: false },
-        { rank: 7, name: 'Luna_V', username: 'luna_v', score: 26, isCurrentUser: false },
-        { rank: 8, name: 'PixelDan', username: 'pixeldan', score: 22, isCurrentUser: false },
-        { rank: 9, name: 'Tanya K.', username: 'tanya_k', score: 19, isCurrentUser: false },
-        { rank: 10, name: 'ZeroCool', username: 'zerocool', score: 17, isCurrentUser: false }
-      ],
-      daily: [
-        { rank: 1, name: 'Elena R.', username: 'elena_chroma', score: 34, isCurrentUser: false },
-        { rank: 2, name: 'Pavel Durov', username: 'durov', score: 32, isCurrentUser: false },
-        { rank: 3, name: 'ColorWiz', username: 'wiz_color', score: 29, isCurrentUser: false },
-        { rank: 4, name: 'CyberAlex', username: 'alex99', score: 27, isCurrentUser: false },
-        { rank: 5, name: 'Mia Sun', username: 'mia_art', score: 25, isCurrentUser: false }
-      ]
-    };
+  getTodayDate() {
+    return this.todayDate;
+  }
+
+  /**
+   * Sync user's stored high scores from backend on startup
+   */
+  async syncUserStats() {
+    const user = this.tgBridge.user;
+    if (!user || !user.id) return;
+
+    try {
+      const res = await fetch(`${this.apiBase}/user-stats?userId=${encodeURIComponent(user.id)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.today) {
+          this.todayDate = data.today;
+        }
+        if (data.endless && typeof data.endless.score === 'number') {
+          const localEndless = parseInt(localStorage.getItem('huehunt_best_endless') || '0', 10);
+          if (data.endless.score > localEndless) {
+            localStorage.setItem('huehunt_best_endless', data.endless.score);
+          }
+        }
+        if (data.daily && typeof data.daily.score === 'number') {
+          const dailyKey = `huehunt_daily_best_${this.todayDate}`;
+          const localDaily = parseInt(localStorage.getItem(dailyKey) || '0', 10);
+          if (data.daily.score > localDaily) {
+            localStorage.setItem(dailyKey, data.daily.score);
+          }
+        }
+        if (data.todayLeader && typeof data.todayLeader.score === 'number') {
+          this.cachedDailyLeader = data.todayLeader.score;
+        }
+      }
+    } catch (e) {
+      // Offline fallback: rely on local storage
+    }
   }
 
   async getLeaderboard(mode = 'endless') {
+    const targetMode = mode === 'daily' ? 'daily' : 'endless';
     try {
-      const res = await fetch(`${this.apiBase}/leaderboard?mode=${mode}`);
+      const url = targetMode === 'daily' 
+        ? `${this.apiBase}/leaderboard?mode=daily&date=${encodeURIComponent(this.todayDate)}`
+        : `${this.apiBase}/leaderboard?mode=endless`;
+
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        return this.formatScores(data.leaderboard || [], mode);
+        if (data.date) {
+          this.todayDate = data.date;
+        }
+        if (data.todayLeader) {
+          this.cachedDailyLeader = data.todayLeader.score || 0;
+        }
+        return this.formatScores(data.leaderboard || []);
       }
     } catch (e) {
-      // API offline - use local storage and mock data
+      console.warn('Backend leaderboard unreachable:', e);
     }
-    return this.getLocalLeaderboard(mode);
+
+    return this.getLocalLeaderboard(targetMode);
   }
 
   getLocalLeaderboard(mode = 'endless') {
-    const list = [...(this.mockLeaderboard[mode] || [])];
-    const userBest = parseInt(localStorage.getItem(`huehunt_best_${mode}`) || '0', 10);
+    const userBest = this.getBestScore(mode);
     const user = this.tgBridge.user;
 
     if (userBest > 0) {
-      // Remove existing entry for current user if present
-      const filtered = list.filter(item => !item.isCurrentUser);
-      filtered.push({
-        rank: 0,
+      return [{
+        rank: 1,
         name: user.displayName || 'You',
         username: user.username || '',
         score: userBest,
         isCurrentUser: true
-      });
-      // Sort descending by score
-      filtered.sort((a, b) => b.score - a.score);
-      // Re-assign ranks
-      filtered.forEach((item, idx) => {
-        item.rank = idx + 1;
-      });
-      return filtered;
+      }];
     }
 
-    return list;
+    return [];
   }
 
-  formatScores(scores, mode) {
+  formatScores(scores) {
     const currentUserId = String(this.tgBridge.user.id);
     return scores.map((item, idx) => ({
       rank: idx + 1,
+      userId: item.userId,
       name: item.name || item.firstName || 'Player',
       username: item.username || '',
       score: item.score,
+      maxCombo: item.maxCombo || 0,
       isCurrentUser: String(item.userId) === currentUserId
     }));
   }
 
   async submitScore(score, mode = 'endless', maxCombo = 0) {
+    const targetMode = mode === 'daily' ? 'daily' : 'endless';
+    
     // 1. Update localStorage best score
-    const bestKey = `huehunt_best_${mode}`;
+    const bestKey = targetMode === 'daily' 
+      ? `huehunt_daily_best_${this.todayDate}` 
+      : 'huehunt_best_endless';
+
     const previousBest = parseInt(localStorage.getItem(bestKey) || '0', 10);
     const isNewBest = score > previousBest;
 
@@ -103,17 +129,27 @@ export class LeaderboardManager {
       name: user.displayName,
       username: user.username,
       score,
-      mode,
+      mode: targetMode,
       maxCombo,
+      date: targetMode === 'daily' ? this.todayDate : undefined,
       timestamp: Date.now()
     };
 
+    let serverRank = null;
+    let serverBest = Math.max(score, previousBest);
+
     try {
-      await fetch(`${this.apiBase}/score`, {
+      const res = await fetch(`${this.apiBase}/score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      if (res.ok) {
+        const data = await res.json();
+        serverRank = data.rank;
+        serverBest = data.bestScore || serverBest;
+        localStorage.setItem(bestKey, serverBest);
+      }
     } catch (e) {
       // Backend not reached, persisted locally
     }
@@ -121,12 +157,20 @@ export class LeaderboardManager {
     return {
       score,
       previousBest,
-      currentBest: Math.max(score, previousBest),
-      isNewBest
+      currentBest: serverBest,
+      isNewBest,
+      rank: serverRank
     };
   }
 
   getBestScore(mode = 'endless') {
-    return parseInt(localStorage.getItem(`huehunt_best_${mode}`) || '0', 10);
+    if (mode === 'daily') {
+      return parseInt(localStorage.getItem(`huehunt_daily_best_${this.todayDate}`) || '0', 10);
+    }
+    return parseInt(localStorage.getItem('huehunt_best_endless') || '0', 10);
+  }
+
+  getCachedDailyLeader() {
+    return this.cachedDailyLeader;
   }
 }
