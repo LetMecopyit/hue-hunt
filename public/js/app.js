@@ -304,11 +304,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
     const options = { month: 'long', day: 'numeric', year: 'numeric' };
     dailyDateLabel.textContent = today.toLocaleDateString('en-US', options);
-    dailyBestStat.textContent = leaderboardManager.getBestScore('daily');
+    const myDailyBest = leaderboardManager.getBestScore('daily');
+    dailyBestStat.textContent = myDailyBest;
 
     // Fetch real daily leaderboard to show today's genuine leader score
     const scores = await leaderboardManager.getLeaderboard('daily');
-    const leaderScore = scores && scores.length > 0 ? scores[0].score : 0;
+    const leaderScore = scores && scores.length > 0 ? scores[0].score : myDailyBest;
     if (dailyLeaderStat) {
       dailyLeaderStat.textContent = leaderScore;
     }
