@@ -451,11 +451,14 @@ document.addEventListener('DOMContentLoaded', () => {
       triggerMonetagAd(() => {
         btnWatchAdRevive.classList.add('hidden');
         gameoverModal.classList.add('hidden');
-        // Fair reward: gives 4 lives and +3 seconds extra next turn
+        // Ensure game view is active and visible
+        switchView('game-view');
+        // Fair reward: gives 4 lives, 18s and starts the next turn immediately
         game.reviveWithReward();
+        soundEngine.playRevivePowerup();
         telegramBridge.hapticNotification('success');
-        confetti.burst(window.innerWidth / 2, window.innerHeight * 0.45, 35);
-        showToast('✨ Second Chance: +4 Lives & +3s Extra!');
+        confetti.burst(window.innerWidth / 2, window.innerHeight * 0.45, 45);
+        showToast('⚡ SECOND CHANCE: 4 Lives & 18s — GO!');
       });
     });
   }
