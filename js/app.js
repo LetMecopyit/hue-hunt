@@ -32,6 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const gridWrapper = document.querySelector('.grid-wrapper');
   const tileGrid = document.getElementById('tile-grid');
   const floatingScores = document.getElementById('floating-scores');
+  const readyPromptOverlay = document.getElementById('ready-prompt-overlay');
+  const btnResumeReady = document.getElementById('btn-resume-ready');
 
   // Buttons & Controls
   const btnResetDemo = document.getElementById('btn-reset-demo');
@@ -146,10 +148,11 @@ document.addEventListener('DOMContentLoaded', () => {
     hudCurrentScore.textContent = state.score;
     hudBestScore.textContent = state.bestScore;
 
-    // Time display & bar
+    // Time display & bar (25s baseline, 28s on second chance)
     const roundedTime = Math.ceil(state.timeLeft);
     hudTimeLeft.textContent = `${roundedTime}s`;
-    const percentTime = Math.min(100, (state.timeLeft / 15.0) * 100);
+    const fullDuration = state.maxLives === 4 ? 28.0 : 25.0;
+    const percentTime = Math.min(100, (state.timeLeft / fullDuration) * 100);
     timeProgressBar.style.width = `${percentTime}%`;
 
     // Mode label
@@ -264,14 +267,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (btnWatchAdRevive) {
-      if (summary.hasUsedReward) {
-        // Fair rule: only 1 ad revive reward permitted per run to prevent leaderboard exploitation!
-        btnWatchAdRevive.classList.add('hidden');
-      } else {
-        btnWatchAdRevive.classList.remove('hidden');
-        btnWatchAdRevive.disabled = false;
-        btnWatchAdRevive.innerHTML = '<span>📺</span> Second Chance (+4 Lives &amp; +3s Extra)';
-      }
+      btnWatchAdRevive.classList.remove('hidden');
+      btnWatchAdRevive.disabled = false;
+      btnWatchAdRevive.innerHTML = '<span>📺</span> Second Chance (+4 Lives &amp; +3s Extra)';
     }
 
     gameoverModal.classList.remove('hidden');
@@ -419,6 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 9. Quick Actions & Buttons
   btnResetDemo.addEventListener('click', () => {
+    if (readyPromptOverlay) readyPromptOverlay.classList.add('hidden');
     telegramBridge.hapticImpact('medium');
     game.start(game.mode || 'endless');
   });
@@ -435,6 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnStartDaily.addEventListener('click', () => {
+    if (readyPromptOverlay) readyPromptOverlay.classList.add('hidden');
     switchView('game-view');
     game.start('daily');
   });
@@ -453,17 +453,33 @@ document.addEventListener('DOMContentLoaded', () => {
         gameoverModal.classList.add('hidden');
         // Ensure game view is active and visible
         switchView('game-view');
-        // Fair reward: gives 4 lives, 18s and starts the next turn immediately
-        game.reviveWithReward();
-        soundEngine.playRevivePowerup();
-        telegramBridge.hapticNotification('success');
-        confetti.burst(window.innerWidth / 2, window.innerHeight * 0.45, 45);
-        showToast('⚡ SECOND CHANCE: 4 Lives & 18s — GO!');
+        // Setup 4 lives, 28 seconds (25s start + 3s extra), fresh puzzle, with timer paused!
+        game.prepareReviveState();
+        // Show Tap-to-Start Ready Overlay so timer waits until player explicitly taps start!
+        if (readyPromptOverlay) {
+          readyPromptOverlay.classList.remove('hidden');
+        }
       });
     });
   }
 
+  // Player explicitly presses "Start Turn" to start playing after the ad
+  if (btnResumeReady) {
+    btnResumeReady.addEventListener('click', () => {
+      if (readyPromptOverlay) {
+        readyPromptOverlay.classList.add('hidden');
+      }
+      // Start ticking the timer now that the player has physically returned
+      game.resumeAfterAd();
+      soundEngine.playRevivePowerup();
+      telegramBridge.hapticNotification('success');
+      confetti.burst(window.innerWidth / 2, window.innerHeight * 0.45, 45);
+      showToast('⚡ SECOND CHANCE: 4 Lives & 28s — GO!');
+    });
+  }
+
   btnPlayAgain.addEventListener('click', () => {
+    if (readyPromptOverlay) readyPromptOverlay.classList.add('hidden');
     gameoverModal.classList.add('hidden');
     gamesPlayedSession += 1;
     // Show interstitial Monetag ad every 3 games

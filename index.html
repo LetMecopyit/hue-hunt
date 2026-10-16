@@ -68,7 +68,7 @@
 
         <div class="hud-card time-card">
           <span class="hud-label">TIME LEFT</span>
-          <span class="hud-value" id="hud-time-left">15s</span>
+          <span class="hud-value" id="hud-time-left">25s</span>
           <div class="time-progress-track">
             <div id="time-progress-bar" class="time-progress-fill"></div>
           </div>
@@ -106,6 +106,18 @@
 
         <!-- Floating scores element container -->
         <div id="floating-scores" class="floating-scores-layer"></div>
+
+        <!-- Second Chance Tap-to-Start Ready Overlay -->
+        <div id="ready-prompt-overlay" class="ready-prompt-overlay hidden">
+          <div class="ready-card">
+            <div class="ready-icon">✨</div>
+            <div class="ready-title">SECOND CHANCE READY!</div>
+            <div class="ready-subtitle">❤️ 4 Lives &bull; ⏱️ 28 Seconds</div>
+            <button id="btn-resume-ready" class="btn btn-rewarded btn-large ready-action-btn">
+              <span>▶️</span> Start Turn
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Quick Action Controls -->

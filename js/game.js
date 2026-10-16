@@ -23,10 +23,10 @@ export class HueHuntGame {
     this.maxCombo = 0;
     this.multiplier = 1.0;
     
-    // Timer
-    this.initialTime = 15.0;
-    this.maxTimeBank = 20.0;
-    this.timeLeft = 15.0;
+    // Timer: Start of each round is 25s
+    this.initialTime = 25.0;
+    this.maxTimeBank = 35.0;
+    this.timeLeft = 25.0;
     this.timerInterval = null;
     this.lastTickTimestamp = 0;
 
@@ -223,23 +223,37 @@ export class HueHuntGame {
   }
 
   /**
-   * Fair Rewarded Ad Bonus:
-   * Gives the player 4 lives and +3 seconds extra next turn (18.0s total).
-   * Generates a fresh puzzle and restarts the game timer immediately.
+   * Prepares the revived game state after the second chance ad finishes:
+   * Sets 4 lives, 28 seconds (25s start + 3s extra), fresh puzzle,
+   * but keeps the timer PAUSED until the player explicitly taps start!
    */
-  reviveWithReward() {
+  prepareReviveState() {
     this.stopTimer();
     this.isPlaying = true;
-    this.isPaused = false;
+    this.isPaused = true; // Wait for player tap!
     this.maxLives = 4;
     this.lives = 4;
-    // 15s standard turn + 3s extra next turn = 18.0s!
-    this.timeLeft = 18.0;
+    // 25s standard round + 3s extra next turn = 28.0s!
+    this.timeLeft = 28.0;
     this.hasUsedRewardThisRun = true;
-    // Generate fresh puzzle so new turn starts immediately
+    // Generate fresh puzzle ready on the grid
     this.generateNextPuzzle();
+    this.emitState();
+  }
+
+  /**
+   * Resumes and starts ticking the timer when the player presses the ready button
+   */
+  resumeAfterAd() {
+    this.isPaused = false;
+    this.lastTickTimestamp = performance.now();
     this.startTimer();
     this.emitState();
+  }
+
+  reviveWithReward() {
+    this.prepareReviveState();
+    this.resumeAfterAd();
   }
 
   revive() {
