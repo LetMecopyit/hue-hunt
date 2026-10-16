@@ -37,6 +37,7 @@ export class HueHuntGame {
 
     // Accessibility
     this.patternAssist = localStorage.getItem('huehunt_assist') === 'true';
+    this.hasUsedRewardThisRun = false;
   }
 
   setPatternAssist(enabled) {
@@ -62,7 +63,9 @@ export class HueHuntGame {
     this.isPlaying = true;
     this.isPaused = false;
     this.score = 0;
-    this.lives = this.maxLives;
+    this.maxLives = 3;
+    this.lives = 3;
+    this.hasUsedRewardThisRun = false;
     this.combo = 0;
     this.maxCombo = 0;
     this.multiplier = 1.0;
@@ -211,20 +214,32 @@ export class HueHuntGame {
         isNewBest: result.isNewBest,
         maxCombo: this.maxCombo,
         mode: this.mode,
-        roundsPlayed: this.currentRound
+        roundsPlayed: this.currentRound,
+        hasUsedReward: this.hasUsedRewardThisRun
       });
     }
 
     this.emitState();
   }
 
-  revive() {
+  /**
+   * Fair Rewarded Ad Bonus:
+   * Gives the player 4 lives and +3 seconds extra to continue next turn.
+   */
+  reviveWithReward() {
     this.isPlaying = true;
     this.isPaused = false;
-    this.lives = Math.max(1, this.lives);
-    this.timeLeft = Math.max(6.0, this.timeLeft + 6.0);
+    this.maxLives = 4;
+    this.lives = 4;
+    // Exactly 3 seconds extra next turn
+    this.timeLeft = (this.timeLeft > 0 ? this.timeLeft : 0) + 3.0;
+    this.hasUsedRewardThisRun = true;
     this.startTimer();
     this.emitState();
+  }
+
+  revive() {
+    this.reviveWithReward();
   }
 
   emitState() {
@@ -241,7 +256,8 @@ export class HueHuntGame {
         timeLeft: this.timeLeft,
         round: this.currentRound,
         puzzle: this.currentPuzzle,
-        patternAssist: this.patternAssist
+        patternAssist: this.patternAssist,
+        hasUsedReward: this.hasUsedRewardThisRun
       });
     }
   }
