@@ -224,16 +224,20 @@ export class HueHuntGame {
 
   /**
    * Fair Rewarded Ad Bonus:
-   * Gives the player 4 lives and +3 seconds extra to continue next turn.
+   * Gives the player 4 lives and +3 seconds extra next turn (18.0s total).
+   * Generates a fresh puzzle and restarts the game timer immediately.
    */
   reviveWithReward() {
+    this.stopTimer();
     this.isPlaying = true;
     this.isPaused = false;
     this.maxLives = 4;
     this.lives = 4;
-    // Exactly 3 seconds extra next turn
-    this.timeLeft = (this.timeLeft > 0 ? this.timeLeft : 0) + 3.0;
+    // 15s standard turn + 3s extra next turn = 18.0s!
+    this.timeLeft = 18.0;
     this.hasUsedRewardThisRun = true;
+    // Generate fresh puzzle so new turn starts immediately
+    this.generateNextPuzzle();
     this.startTimer();
     this.emitState();
   }
