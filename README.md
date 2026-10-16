@@ -8,7 +8,7 @@
 ## 🌟 Game Highlights & Features
 
 - **⚡ Endless Mode**: Continuous gameplay with escalating difficulty. Delta color difference scales down smoothly from 22% toward a tuned perceptual limit (2.8%) so rounds remain fast and challenging without becoming impossible.
-- **⏱️ Adrenaline Time Bank**: Starts at 15s. Correct taps add bonus time (+1.0s to +1.25s). Wrong taps deduct 2.5s and 1 life!
+- **⏱️ Adrenaline Time Bank**: Starts at 25s. Correct taps add bonus time (+1.0s to +1.25s). Wrong taps deduct 2.5s and 1 life!
 - **❤️ 3 Lives System**: One mistake does not immediately ruin a high-score run.
 - **🔥 Combo Multiplier Streaks**: Every 5 consecutive correct answers increases the score multiplier (1.5x at 5, 2.0x at 10, 3.0x at 15, 4.0x at 20).
 - **📅 Daily Challenge**: Seeded with `Mulberry32` PRNG using the current date (`YYYY-MM-DD`). Every player on earth gets the exact same color puzzle sequence that day for 100% fair competition.
